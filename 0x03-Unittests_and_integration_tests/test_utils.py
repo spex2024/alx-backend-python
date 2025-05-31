@@ -17,7 +17,8 @@ class TestAccessNestedMap(unittest.TestCase):
     ])
     def test_access_nested_map(self, nested_map, path, expected):
         """Test that access_nested_map returns correct result"""
-        self.assertEqual(access_nested_map(nested_map, path), expected)
+        result = access_nested_map(nested_map, path)
+        self.assertEqual(result, expected)
 
     @parameterized.expand([
         ({}, ("a",), "'a'"),
@@ -38,19 +39,28 @@ class TestGetJson(unittest.TestCase):
         ("http://holberton.io", {"payload": False}),
     ])
     def test_get_json(self, test_url, test_payload):
-        """Test that get_json returns expected payload and calls requests.get"""
+        """
+        Test that get_json returns expected payload and
+        calls requests.get with the correct URL
+        """
         with patch("utils.requests.get") as mock_get:
-            mock_get.return_value = Mock(**{"json.return_value": test_payload})
+            mock_resp = Mock()
+            mock_resp.json.return_value = test_payload
+            mock_get.return_value = mock_resp
+
             result = get_json(test_url)
-            mock_get.assert_called_once_with(test_url)
             self.assertEqual(result, test_payload)
+            mock_get.assert_called_once_with(test_url)
 
 
 class TestMemoize(unittest.TestCase):
     """Tests for memoize decorator"""
 
     def test_memoize(self):
-        """Test that memoize caches result and a_method is called only once"""
+        """
+        Test that memoize caches result and a_method
+        is only called once
+        """
         class TestClass:
             def a_method(self):
                 return 42
