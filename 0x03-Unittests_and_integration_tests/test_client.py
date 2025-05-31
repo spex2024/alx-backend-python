@@ -116,3 +116,4 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     def test_get_patcher_is_requests_get(self):
         """Test that get_patcher is patching requests.get."""
         self.assertIn("requests.get", str(self.get_patcher))
+
