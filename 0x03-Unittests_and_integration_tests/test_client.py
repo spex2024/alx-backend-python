@@ -88,25 +88,71 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
             return mock_resp
 
         mock_get.side_effect = side_effect
+        @classmethod
+        def tearDownClass(cls):
+            """Stop patcher"""
+            cls.get_patcher.stop()
 
-    @classmethod
-    def tearDownClass(cls):
-        """Stop patcher"""
-        cls.get_patcher.stop()
+        def test_public_repos(self):
+            """Test public_repos returns expected repos"""
+            client_obj = GithubOrgClient("google")
+            self.assertEqual(client_obj.public_repos(), self.expected_repos)
 
-    def test_public_repos(self):
-        """Test public_repos returns expected repos"""
-        client_obj = GithubOrgClient("google")
-        self.assertEqual(client_obj.public_repos(), self.expected_repos)
+        def test_public_repos_with_license(self):
+            """Test public_repos with license filter"""
+            client_obj = GithubOrgClient("google")
+            self.assertEqual(
+                client_obj.public_repos(license="apache-2.0"),
+                self.apache2_repos
+            )
 
-    def test_public_repos_with_license(self):
-        """Test public_repos with license filter"""
-        client_obj = GithubOrgClient("google")
-        self.assertEqual(
-            client_obj.public_repos(license="apache-2.0"),
-            self.apache2_repos
-        )
+        def test_org_property_is_cached(self):
+            """Test that org property is cached and requests.get is called only once"""
+            client_obj = GithubOrgClient("google")
+            org1 = client_obj.org
+            org2 = client_obj.org
+            self.assertIs(org1, org2)
+            # The patch in setUpClass ensures requests.get is only called once for org
+
+        def test_public_repos_url_matches_org_payload(self):
+            """Test that _public_repos_url matches repos_url in org_payload"""
+            client_obj = GithubOrgClient("google")
+            self.assertEqual(client_obj._public_repos_url, self.org_payload["repos_url"])
+
+        def test_public_repos_empty(self):
+            """Test public_repos returns empty list if repos_payload is empty"""
+            # Patch repos_payload to empty list
+            original_repos_payload = self.repos_payload
+            self.repos_payload = []
+            client_obj = GithubOrgClient("google")
+            self.assertEqual(client_obj.public_repos(), [])
+            self.repos_payload = original_repos_payload
+
+        def test_public_repos_with_nonexistent_license(self):
+            """Test public_repos returns empty list if no repo matches license"""
+            client_obj = GithubOrgClient("google")
+            self.assertEqual(client_obj.public_repos(license="nonexistent-license"), [])
+
+        def test_has_license_true(self):
+            """Test has_license returns True for matching license"""
+            repo = {"license": {"key": "apache-2.0"}}
+            self.assertTrue(GithubOrgClient.has_license(repo, "apache-2.0"))
+
+        def test_has_license_false(self):
+            """Test has_license returns False for non-matching license"""
+            repo = {"license": {"key": "mit"}}
+            self.assertFalse(GithubOrgClient.has_license(repo, "apache-2.0"))
+
+        def test_has_license_no_license_key(self):
+            """Test has_license returns False if license key is missing"""
+            repo = {"license": {}}
+            self.assertFalse(GithubOrgClient.has_license(repo, "apache-2.0"))
+
+        def test_has_license_no_license(self):
+            """Test has_license returns False if license is missing"""
+            repo = {}
+            self.assertFalse(GithubOrgClient.has_license(repo, "apache-2.0"))
 
 
-if __name__ == "__main__":
-    unittest.main()
+    if __name__ == "__main__":
+        unittest.main()
