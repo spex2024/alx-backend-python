@@ -3,6 +3,9 @@ from .models import User, Conversation, Message
 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField()  # Explicitly declare CharField
+    email = serializers.CharField()     # Explicitly declare CharField
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
