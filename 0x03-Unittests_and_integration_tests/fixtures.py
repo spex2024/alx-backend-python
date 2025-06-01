@@ -1,18 +1,21 @@
-#!/usr/bin/env python3
-"""
-Fixture module to provide test payloads.
-"""
+# fixtures.py
 
 TEST_PAYLOAD = [
-    {"login": "google"},
+    # 0: org_payload (dict)
+    {
+        "login": "google",
+        "id": 1342004,
+        "repos_url": "https://api.github.com/orgs/google/repos"
+    },
+    # 1: repos_payload (list of dicts)
     [
         {"name": "repo1", "license": {"key": "apache-2.0"}},
-        {"name": "repo2", "license": {"key": "apache-2.0"}},
-        {"name": "repo3", "license": {"key": "mit"}},
+        {"name": "repo2", "license": {"key": "mit"}},
+        {"name": "repo3", "license": {"key": "apache-2.0"}},
+        {"name": "repo4", "license": None}
     ],
-    ["repo1", "repo2", "repo3"],
-    ["repo1", "repo2"]  # only repos with apache-2.0 license
+    # 2: expected_repos (list of all repo names)
+    ["repo1", "repo2", "repo3", "repo4"],
+    # 3: apache2_repos (list of repos with license key "apache-2.0")
+    ["repo1", "repo3"]
 ]
-def get_test_payload():
-    """Return the test payload for use in tests."""
-    return TEST_PAYLOAD
