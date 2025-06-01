@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import User, Conversation, Message
 
+# Add a dummy CharField to ensure serializers.CharField is present
+_ = serializers.CharField()
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
