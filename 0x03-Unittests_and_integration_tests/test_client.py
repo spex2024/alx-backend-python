@@ -100,4 +100,30 @@ class TestGithubOrgClient(unittest.TestCase):
                 self.assertEqual(self.get_patcher.attribute, "get")
                 self.assertEqual(self.get_patcher.get_original()[0].__module__, "requests")
 
-        # The rest of your tests remain unchanged
+            def test_public_repos_with_nonexistent_license(self):
+                """Test public_repos returns empty list for nonexistent license."""
+                client = GithubOrgClient(self.org_name)
+                self.assertEqual(
+                    client.public_repos(license="nonexistent_license"),
+                    []
+                )
+
+            def test_public_repos_with_none_license(self):
+                """Test public_repos returns all repos when license is None."""
+                client = GithubOrgClient(self.org_name)
+                self.assertEqual(
+                    client.public_repos(license=None),
+                    self.expected_repos
+                )
+
+            def test_org_payload_structure(self):
+                """Test that org_payload has expected keys."""
+                self.assertIn("login", self.org_payload)
+                self.assertIn("repos_url", self.org_payload)
+
+            def test_repos_payload_structure(self):
+                """Test that each repo in repos_payload has expected keys."""
+                for repo in self.repos_payload:
+                    self.assertIn("name", repo)
+                    self.assertIn("license", repo)
+                    self.assertIn("key", repo["license"])
