@@ -127,3 +127,59 @@ class TestGithubOrgClient(unittest.TestCase):
                     self.assertIn("name", repo)
                     self.assertIn("license", repo)
                     self.assertIn("key", repo["license"])
+
+            def test_public_repos_license_case_sensitivity(self):
+                """Test that license filtering is case sensitive."""
+                client = GithubOrgClient(self.org_name)
+                # Should return empty because "MY_LICENSE" != "my_license"
+                self.assertEqual(
+                    client.public_repos(license="MY_LICENSE"),
+                    []
+                )
+
+            def test_public_repos_license_partial_match(self):
+                """Test that partial license keys do not match."""
+                client = GithubOrgClient(self.org_name)
+                # Should return empty because "my" is not equal to "my_license"
+                self.assertEqual(
+                    client.public_repos(license="my"),
+                    []
+                )
+
+            def test_public_repos_with_null_license_in_repo(self):
+                """Test that repos with null license are handled gracefully."""
+                # Add a repo with license=None
+                repos_payload = self.repos_payload + [{"name": "repo4", "license": None}]
+                org_response = unittest.mock.Mock()
+                org_response.json.return_value = self.org_payload
+                repos_response = unittest.mock.Mock()
+                repos_response.json.return_value = repos_payload
+                self.mock_get.side_effect = [org_response, repos_response]
+                client = GithubOrgClient(self.org_name)
+                # Should not raise and should not include repo4
+                self.assertNotIn("repo4", client.public_repos())
+                self.assertNotIn("repo4", client.public_repos(license="my_license"))
+
+            def test_public_repos_with_empty_repos(self):
+                """Test that empty repos_payload returns empty list."""
+                org_response = unittest.mock.Mock()
+                org_response.json.return_value = self.org_payload
+                repos_response = unittest.mock.Mock()
+                repos_response.json.return_value = []
+                self.mock_get.side_effect = [org_response, repos_response]
+                client = GithubOrgClient(self.org_name)
+                self.assertEqual(client.public_repos(), [])
+                self.assertEqual(client.public_repos(license="my_license"), [])
+
+            def test_public_repos_with_missing_license_key(self):
+                """Test that repos missing license key are handled gracefully."""
+                # Add a repo with license dict but missing 'key'
+                repos_payload = self.repos_payload + [{"name": "repo5", "license": {}}]
+                org_response = unittest.mock.Mock()
+                org_response.json.return_value = self.org_payload
+                repos_response = unittest.mock.Mock()
+                repos_response.json.return_value = repos_payload
+                self.mock_get.side_effect = [org_response, repos_response]
+                client = GithubOrgClient(self.org_name)
+                # Should not raise and should not include repo5
+                self.assertNotIn("repo5", client.public_repos(license="my_license"))
