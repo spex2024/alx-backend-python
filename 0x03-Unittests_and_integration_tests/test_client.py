@@ -27,6 +27,10 @@ class TestGithubOrgClient(unittest.TestCase):
         """Stop patcher for client.get_json."""
         cls.get_patcher.stop()
 
+
+    def setUp(self):
+        self.mock_get_json = type(self).mock_get_json
+
     def test_org(self):
         """Test that org property returns correct org data."""
         expected = {"login": self.org_name}
