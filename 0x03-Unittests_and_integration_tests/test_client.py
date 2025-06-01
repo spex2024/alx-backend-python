@@ -19,18 +19,18 @@ class TestGithubOrgClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Patch requests.get for all tests in this class
+        # Patch requests.get once for all tests in this class
         cls.get_patcher = patch("requests.get")
         cls.mock_get = cls.get_patcher.start()
 
     @classmethod
     def tearDownClass(cls):
+        # Stop patching requests.get after all tests
         cls.get_patcher.stop()
 
     def test_org(self):
         """Test that GithubOrgClient.org returns the correct value."""
         expected = {"login": self.org_name}
-        # We simulate that requests.get().json() returns expected
         mock_response = self.mock_get.return_value
         mock_response.json.return_value = expected
 
