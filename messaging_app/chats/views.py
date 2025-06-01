@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, filters  # <-- add filters import
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Conversation, Message
@@ -34,6 +34,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]  # <-- add this line
+    search_fields = ['conversation__id']      # <-- add this line
 
     def perform_create(self, serializer):
         # Automatically associate the message with the sender (authenticated user)
