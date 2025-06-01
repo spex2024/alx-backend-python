@@ -1,47 +1,70 @@
 #!/usr/bin/env python3
-"""GithubOrgClient module"""
+"""
+Client module to interact with the GitHub API for organizations.
+"""
 
 import requests
 
 
 def get_json(url):
-    """Fetch JSON data from a URL"""
-    return requests.get(url).json()
+    """Get JSON content from a URL."""
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
 
 
 class GithubOrgClient:
-    """Client to interact with GitHub organization."""
+    """GitHub organization client to fetch organization details and repos."""
 
     ORG_URL = "https://api.github.com/orgs/{}"
 
     def __init__(self, org_name):
+        """Initialize the client with the organization name."""
         self.org_name = org_name
 
     @property
     def org(self):
-        """Return organization info"""
-        return get_json(self.ORG_URL.format(self.org_name))
+        """Return the JSON representation of the organization."""
+        url = self.ORG_URL.format(self.org_name)
+        return get_json(url)
 
     @property
     def _public_repos_url(self):
-        """Return URL to the list of public repos"""
+        """Return the URL to fetch the organization's public repositories."""
         return self.org.get("repos_url")
 
-    def public_repos(self, license=None):
-        """Return list of public repos (optionally filtered by license)"""
-        repos = get_json(self._public_repos_url)
-        if license is None:
-            return [repo["name"] for repo in repos]
-        return [
-            repo["name"]
-            for repo in repos
-            if self.has_license(repo, license)
-        ]
+    def public_repos(self, license_key=None):
+        """Return the list of public repository names.
 
-    @staticmethod
-    def has_license(repo, license_key):
-        """Check if a repo has a specific license"""
-        try:
-            return repo["license"]["key"] == license_key
-        except Exception:
+        If license_key is provided, filter repos by that license key.
+
+        Args:
+            license_key (str, optional): The license key to filter repos by.
+
+        Returns:
+            list of str: List of repo names.
+        """
+        repos = get_json(self._public_repos_url)
+        if license_key is None:
+            return [repo["name"] for repo in repos]
+        else:
+            return [
+                repo["name"]
+                for repo in repos
+                if repo.get("license") and repo["license"].get("key") == license_key
+            ]
+
+    def has_license(self, repo, license_key):
+        """Check if a repo has a specific license key.
+
+        Args:
+            repo (dict): The repository dictionary.
+            license_key (str): The license key to check.
+
+        Returns:
+            bool: True if the repo's license matches license_key, else False.
+        """
+        license_info = repo.get("license")
+        if license_info is None:
             return False
+        return license_info.get("key") == license_key
