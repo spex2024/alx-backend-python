@@ -1,28 +1,42 @@
 from rest_framework import serializers
+from rest_framework.serializers import SerializerMethodField, ValidationError
 from .models import User, Conversation, Message
 
-# User Serializer
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField()  # Explicitly declare CharField
-    email = serializers.CharField()     # Explicitly declare CharField
-
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['user_id', 'email', 'first_name', 'last_name', 'phone_number']
 
-# Message Serializer (includes sender info)
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
 
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'content', 'timestamp']
+        fields = ['message_id', 'sender', 'content', 'timestamp']
 
-# Conversation Serializer (includes nested messages and participants)
 class ConversationSerializer(serializers.ModelSerializer):
-    participants = UserSerializer(many=True, read_only=True)
-    messages = MessageSerializer(many=True, read_only=True)
+    participants = UserSerializer(many=True)
+    messages = SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ['id', 'participants', 'created_at', 'messages']
+        fields = ['conversation_id', 'participants', 'messages']
+
+    def get_messages(self, obj):
+        # Get messages related to this conversation ordered by timestamp
+        messages = obj.message_set.all().order_by('timestamp')
+        return MessageSerializer(messages, many=True).data
+
+    def validate(self, data):
+        participants = data.get('participants', [])
+        if len(participants) < 2:
+            raise ValidationError("Conversation must have at least two participants.")
+        return data
+
+    def create(self, validated_data):
+        participants_data = validated_data.pop('participants')
+        conversation = Conversation.objects.create()
+        for participant_data in participants_data:
+            user = User.objects.get(user_id=participant_data['user_id'])
+            conversation.participants.add(user)
+        return conversation
