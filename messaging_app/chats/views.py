@@ -28,6 +28,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
 
+
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
@@ -43,8 +44,5 @@ class MessageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         conversation_id = self.request.query_params.get('conversation')
         if conversation_id:
-            return Message.objects.filter(
-                conversation_id=conversation_id,
-                conversation__participants=self.request.user
-            )
-        return Message.objects.filter(conversation__participants=self.request.user)
+            return Message.objects.filter(conversation_id=conversation_id)
+        return super().get_queryset()
