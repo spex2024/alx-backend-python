@@ -79,3 +79,29 @@ class OffensiveLanguageMiddleware:
         if x_forwarded_for:
             return x_forwarded_for.split(',')[0]
         return request.META.get('REMOTE_ADDR')
+    
+
+    # Django-Middleware-0x03/chats/middleware.py
+from django.http import JsonResponse
+
+class RolepermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = request.user
+        if user.is_authenticated:
+            allowed_roles = ['admin', 'moderator']
+            user_role = getattr(user, 'role', None)
+
+            if user_role not in allowed_roles:
+                return JsonResponse(
+                    {'error': 'Access denied: You must be an admin or moderator to perform this action.'},
+                    status=403
+                )
+        else:
+            # Optionally handle anonymous users here if needed, e.g., block or allow
+            pass
+
+        response = self.get_response(request)
+        return response
