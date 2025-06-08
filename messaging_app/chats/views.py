@@ -5,16 +5,20 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.status import HTTP_403_FORBIDDEN
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
+from django_filters.rest_framework import DjangoFilterBackend  # <-- add this import
+
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
-from .permissions import IsParticipantOfConversation  # import your custom permission
+from .permissions import IsParticipantOfConversation
+from .pagination import MessagePagination  # <-- import your pagination class
+from .filters import MessageFilter  # <-- import your filter class
 
 User = get_user_model()
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    permission_classes = [IsAuthenticated, IsParticipantOfConversation]  # add here
+    permission_classes = [IsAuthenticated, IsParticipantOfConversation]
 
     def perform_create(self, serializer):
         conversation = serializer.save()
@@ -38,8 +42,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    permission_classes = [IsAuthenticated, IsParticipantOfConversation]  # add here
-    filter_backends = [filters.SearchFilter]
+    permission_classes = [IsAuthenticated, IsParticipantOfConversation]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]  # <-- add DjangoFilterBackend here
+    filterset_class = MessageFilter  # <-- add your filtering class here
+    pagination_class = MessagePagination  # <-- add pagination class here
     search_fields = ['conversation__id']
 
     def perform_create(self, serializer):
