@@ -1,20 +1,19 @@
-from rest_framework import viewsets, permissions, filters  # <-- add filters import
+from rest_framework import viewsets, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.contrib.auth import get_user_model
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
-from django.contrib.auth import get_user_model
+from .permissions import IsParticipantOfConversation
 
 User = get_user_model()
 
-# Conversation ViewSet
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsParticipantOfConversation]
 
     def perform_create(self, serializer):
-        # Create a conversation with the authenticated user as a participant
         conversation = serializer.save()
         conversation.participants.add(self.request.user)
 
@@ -29,23 +28,23 @@ class ConversationViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
 
-# Message ViewSet
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter]  # <-- add this line
-    search_fields = ['conversation__id']      # <-- add this line
+    permission_classes = [IsParticipantOfConversation]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['conversation__id']
 
     def perform_create(self, serializer):
-        # Automatically associate the message with the sender (authenticated user)
         conversation_id = self.request.data.get('conversation')
         conversation = Conversation.objects.get(id=conversation_id)
         serializer.save(sender=self.request.user, conversation=conversation)
 
     def get_queryset(self):
-        # Optionally filter messages by conversation
         conversation_id = self.request.query_params.get('conversation')
         if conversation_id:
-            return Message.objects.filter(conversation_id=conversation_id)
-        return super().get_queryset()
+            return Message.objects.filter(
+                conversation_id=conversation_id,
+                conversation__participants=self.request.user
+            )
+        return Message.objects.filter(conversation__participants=self.request.user)
