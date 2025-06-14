@@ -1,11 +1,21 @@
-from django.db import models
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
+from django.views.decorators.cache import cache_page
+from django.contrib.auth.decorators import login_required
+from Django_Chat.Models.message import Message
 
-class Message(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    edited = models.BooleanField(default=False)
 
-    def __str__(self):
-        return f'{self.sender.username}: {self.content[:20]}'
+@cache_page(60)  # Cache the entire view for 60 seconds
+@login_required
+def conversation_view(request, username):
+    sender = request.user
+    receiver = get_object_or_404(User, username=username)
+
+    messages = Message.objects.filter(
+        sender=sender, receiver=receiver
+    ).order_by('-timestamp')[:50]
+
+    return render(request, 'messaging/conversation.html', {
+        'messages': messages,
+        'receiver': receiver,
+    })
