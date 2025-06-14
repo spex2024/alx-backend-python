@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from Django_Chat.Models.message import Message
+from django.shortcuts import redirect
+
 
 
 @login_required
@@ -33,3 +35,8 @@ def sent_messages_view(request):
     return render(request, 'messaging/sent_messages.html', {
         'messages': messages
     })
+
+@login_required
+def delete_user(request):
+    request.user.delete()
+    return redirect('home')  # Replace with appropriate redirect
