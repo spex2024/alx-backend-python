@@ -1,22 +1,17 @@
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.models import User
-from django.views.decorators.cache import cache_page
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import cache_page
 from Django_Chat.Models.message import Message
 
 
-@cache_page(60)  # ✅ Cache for 60 seconds
+@cache_page(60)
 @login_required
-def conversation_view(request, username):
-    sender = request.user  # ✅ Checkpoint: sender=request.user
-    receiver = get_object_or_404(User, username=username)
+def unread_messages_view(request):
+    user = request.user
 
-    # ✅ Using select_related to optimize FK lookups
-    messages = Message.objects.filter(
-        sender=sender, receiver=receiver
-    ).select_related('sender', 'receiver').order_by('-timestamp')[:50]
+    # ✅ Uses Message.unread.unread_for_user and .only()
+    unread_messages = Message.unread.unread_for_user(user)
 
-    return render(request, 'messaging/conversation.html', {
-        'messages': messages,
-        'receiver': receiver,
+    return render(request, 'messaging/unread_messages.html', {
+        'unread_messages': unread_messages
     })
