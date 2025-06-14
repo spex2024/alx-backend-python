@@ -55,7 +55,7 @@ class OffensiveLanguageMiddleware:
     def __call__(self, request):
         if request.method == 'POST' and '/messages/' in request.path:
             ip = self.get_client_ip(request)
-            now = time.time()
+            now = datetime.now().timestamp()
             window = 60  # 1 minute
             limit = 5    # max 5 messages per minute
 
