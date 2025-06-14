@@ -1,12 +1,11 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
-from django.contrib import messages
+from django.db import models
+from django.contrib.auth.models import User
 
-@login_required
-def delete_user(request):
-    if request.method == "POST":
-        user = request.user
-        user.delete()
-        messages.success(request, "Your account and data were deleted successfully.")
-        return redirect("home")  # or your login/home URL
-    return redirect("profile")  # fallback if not POST
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    edited = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.sender.username}: {self.content[:20]}'
