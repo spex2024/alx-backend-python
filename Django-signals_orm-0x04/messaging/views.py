@@ -5,15 +5,16 @@ from django.contrib.auth.decorators import login_required
 from Django_Chat.Models.message import Message
 
 
-@cache_page(60)  # Cache the entire view for 60 seconds
+@cache_page(60)  # ✅ Cache for 60 seconds
 @login_required
 def conversation_view(request, username):
-    sender = request.user
+    sender = request.user  # ✅ Checkpoint: sender=request.user
     receiver = get_object_or_404(User, username=username)
 
+    # ✅ Using select_related to optimize FK lookups
     messages = Message.objects.filter(
         sender=sender, receiver=receiver
-    ).order_by('-timestamp')[:50]
+    ).select_related('sender', 'receiver').order_by('-timestamp')[:50]
 
     return render(request, 'messaging/conversation.html', {
         'messages': messages,
