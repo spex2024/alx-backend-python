@@ -1,17 +1,23 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.models import User
 from django.views.decorators.cache import cache_page
+from django.contrib.auth.decorators import login_required
 from Django_Chat.Models.message import Message
 
 
-@cache_page(60)
+@cache_page(60)  # ✅ View caching
 @login_required
-def unread_messages_view(request):
-    user = request.user
+def conversation_view(request, username):
+    sender = request.user  # ✅ Sender is request.user
+    receiver = get_object_or_404(User, username=username)
 
-    # ✅ Uses Message.unread.unread_for_user and .only()
-    unread_messages = Message.unread.unread_for_user(user)
+    # ✅ Using Message.objects.filter + select_related
+    messages = Message.objects.filter(
+        sender=sender,
+        receiver=receiver
+    ).select_related('sender', 'receiver').order_by('-timestamp')
 
-    return render(request, 'messaging/unread_messages.html', {
-        'unread_messages': unread_messages
+    return render(request, 'messaging/conversation.html', {
+        'messages': messages,
+        'receiver': receiver,
     })
