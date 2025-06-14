@@ -2,6 +2,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from Django_Chat.Models.message import Message
 from django.shortcuts import redirect
+from django.views.decorators.cache import cache_page
+
 
 
 
@@ -40,3 +42,10 @@ def sent_messages_view(request):
 def delete_user(request):
     request.user.delete()
     return redirect('home')  # Replace with appropriate redirect
+
+
+@cache_page(60)
+def inbox(request):
+    messages = Message.objects.filter(receiver=request.user).select_related('sender').only('content', 'sender')
+    return render(request, 'messaging/inbox.html', {'messages': messages})
+
