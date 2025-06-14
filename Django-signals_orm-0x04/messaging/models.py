@@ -1,34 +1,37 @@
-from django.db import models
+from django.db.models.signals import post_save, post_delete, pre_save
+from django.dispatch import receiver
 from django.contrib.auth.models import User
-
-class Message(models.Model):
-    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
-    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    edited = models.BooleanField(default=False)
-    edited_by = models.ForeignKey(User, null=True, blank=True, related_name='edited_messages', on_delete=models.SET_NULL)
-    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
-    read = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.sender} → {self.receiver}: {self.content[:30]}"
+from .models import Message, Notification, MessageHistory
 
 
-class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.ForeignKey(Message, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+@receiver(post_save, sender=Message)
+def create_notification_on_new_message(sender, instance, created, **kwargs):
+    if created:
+        Notification.objects.create(
+            user=instance.receiver,
+            message=instance
+        )
 
-    def __str__(self):
-        return f"Notification for {self.user} about message {self.message.id}"
+
+@receiver(pre_save, sender=Message)
+def log_message_edit(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = Message.objects.get(pk=instance.pk)
+            if old_instance.content != instance.content:
+                MessageHistory.objects.create(
+                    message=old_instance,
+                    user=old_instance.sender,
+                    old_content=old_instance.content
+                )
+                instance.edited = True
+        except Message.DoesNotExist:
+            pass
 
 
-class MessageHistory(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    old_content = models.TextField()
-    edited_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"History for message {self.message.id} edited by {self.user}"
+@receiver(post_delete, sender=User)
+def delete_related_user_data(sender, instance, **kwargs):
+    Message.objects.filter(sender=instance).delete()
+    Message.objects.filter(receiver=instance).delete()
+    Notification.objects.filter(user=instance).delete()
+    MessageHistory.objects.filter(user=instance).delete()
